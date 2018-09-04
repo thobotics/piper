@@ -1,11 +1,11 @@
 piper:
-  start_conf: [-1.92, 1.5, 0.53, -2.5, -2.91, 0.72]
-  start_pose: [0, 0, 0]
-  goal_conf: [4.7124, 3.1416, 3.1416, 0.0, 0.0, 0.0]
-  goal_pose: [2, -1, -1.5708]
-  sdf_file: sdf/empty_sdf.bin
-  total_time: 10.0
-  total_step: 10
+  start_conf: [0.,0.,0.,0.,0.,0.] #[-1.92, 1.5, 0.53, -2.5, -2.91, 0.72]
+  start_pose: [1.72, 1.74, 0] #[3.5, 10.37, 0]
+  goal_conf: [0.,0.,0.,0.,0.,0.] #[4.7124, 3.1416, 3.1416, 0.0, 0.0, 0.0]
+  goal_pose: [8.5, 17.87, -1.57] #[36.0, 14.74, 0]
+  sdf_file: sdf/SocialContexts.bin
+  total_time: 20.0
+  total_step: 30
   obs_check_inter: 5
   control_inter: 5
   cost_sigma: 0.005

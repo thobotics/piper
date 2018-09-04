@@ -18,6 +18,20 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   geometry_msgs
   trajectory_msgs
+  nav_msgs
+)
+
+## Generate messages in the 'msg' folder
+add_message_files(
+   FILES
+   FieldGrid.msg
+)
+
+## Generate added messages and services with any dependencies listed here
+generate_messages(
+   DEPENDENCIES
+   std_msgs
+   nav_msgs
 )
 
 # C++11 flags for GTSAM 4.0
@@ -33,7 +47,9 @@ find_package(gpmp2 REQUIRED)
 include_directories(${gpmp2_INCLUDE_DIR})
 set(gpmp2_LIBRARIES gpmp2)
 
-catkin_package()
+catkin_package(
+	CATKIN_DEPENDS rospy message_runtime std_msgs nav_msgs
+)
 
 # Specify additional locations of header files
 include_directories(${catkin_INCLUDE_DIRS})
@@ -62,6 +78,7 @@ install(DIRECTORY piper/base/
 option(BUILD_ALL_INTERFACE "whether to build all interfaces" OFF)
 option(BUILD_GPMP2_INTERFACE "whether to build interface for batch GPMP2" OFF)
 option(BUILD_STEAP_INTERFACE "whether to build interface for STEAP" OFF)
+option(BUILD_TURTLEBOT_INTERFACE "whether to build interface for TURTLEBOT" OFF)
 
 
 ################################################
@@ -70,6 +87,7 @@ option(BUILD_STEAP_INTERFACE "whether to build interface for STEAP" OFF)
 if(BUILD_ALL_INTERFACE)
   set(BUILD_GPMP2_INTERFACE ON)
   set(BUILD_STEAP_INTERFACE ON)
+  set(BUILD_TURTLEBOT_INTERFACE ON)
 endif()
 
 
@@ -111,6 +129,30 @@ if(BUILD_STEAP_INTERFACE)
   )
 
   install(DIRECTORY piper/steap_interface/
+    DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+    FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
+  )
+endif()
+
+################################################
+##              turtlebot_interface               ##
+################################################
+if(BUILD_TURTLEBOT_INTERFACE)
+  include_directories(piper/turtlebot_interface/)
+
+  # file(GLOB TURTLEBOT_INTERFACE_SRC "piper/turtlebot_interface/*.cpp")
+  # add_executable(turtlebot_interface ${TURTLEBOT_INTERFACE_SRC})
+  add_executable(turtlebot_interface piper/turtlebot_interface/turtlebot_interface.cpp)
+  add_executable(ros_sdf piper/turtlebot_interface/ros_sdf.cpp)
+
+  target_link_libraries(turtlebot_interface piperbase)
+  target_link_libraries(ros_sdf piperbase)
+
+  install(TARGETS turtlebot_interface ros_sdf
+    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  )
+
+  install(DIRECTORY piper/turtlebot_interface/
     DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
     FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
   )
