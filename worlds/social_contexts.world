@@ -20,7 +20,7 @@ define turtlebot position
   size [ 0.255 0.255 0.400 ]
   origin [ 0.000 0.000 0.000 0.000 ]
   gui_nose 1
-  drive "diff"
+  drive "omni"
   color "gray"
 
   kinect(pose [ -0.100 0.000 -0.110 0.000 ])

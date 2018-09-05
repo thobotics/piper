@@ -65,7 +65,7 @@
   <!--  ************** Navigation  ***************  -->
   <!--  ****** Move_base ******  -->
   <!-- <include file="$(find turtlebot_mpepc)/launch/includes/move_base.launch.xml"/> -->
-  <node name="trajfeedback" pkg="piper" type="turtlebot_traj_server.py">
+  <node name="trajfeedback" pkg="piper" type="turtlebot_traj_server.py" output="screen">
     <!-- <param name="frame_id" value="/map"/> -->
   </node>
   <node name="steap_visualize" pkg="piper" type="steap_visualize.py">

@@ -34,7 +34,6 @@ class TurtlebotInterface
     Problem problem_;
     Traj traj_;
     gtsam::Values init_values_, batch_values_, inc_inf_values_, exec_values_;
-    gpmp2::ISAM2TrajOptimizer3DArm arm_inc_inf_;
     gpmp2::ISAM2TrajOptimizerPose2MobileArm marm_inc_inf_;
 
     std::string arm_state_topic_, base_state_topic_;

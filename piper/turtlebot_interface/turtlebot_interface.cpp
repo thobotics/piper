@@ -25,6 +25,7 @@ TurtlebotInterface::TurtlebotInterface(ros::NodeHandle nh)
     arm_pos_ = gtsam::Vector::Zero(problem_.robot.getDOFarm());
     arm_pos_time_ = ros::Time::now();
   }
+  // robot state subscriber
   if (problem_.robot.isMobileBase() && nh.hasParam("robot/base_state_topic"))
   {
     nh.getParam("robot/base_state_topic", base_state_topic_);
@@ -35,12 +36,6 @@ TurtlebotInterface::TurtlebotInterface(ros::NodeHandle nh)
   ros::Duration(1.0).sleep();
 
   // get start from measurement if not passed as param
-  if (!nh.hasParam("start_conf"))
-  {
-    problem_.start_conf = arm_pos_;
-    if (problem_.robot.isThetaNeg())
-      problem_.robot.negateTheta(problem_.start_conf);
-  }
   if (problem_.robot.isMobileBase())
   {
     if (!nh.hasParam("start_pose"))
@@ -54,12 +49,8 @@ TurtlebotInterface::TurtlebotInterface(ros::NodeHandle nh)
   // solve for initial plan with batch gpmp2
   ROS_INFO("Optimizing...");
   int DOF = problem_.robot.getDOF();
-  if (!problem_.robot.isMobileBase())
-    batch_values_ = gpmp2::BatchTrajOptimize3DArm(problem_.robot.arm, problem_.sdf, problem_.start_conf,
-      gtsam::Vector::Zero(DOF), problem_.goal_conf, gtsam::Vector::Zero(DOF), init_values_, problem_.opt_setting);
-  else
-    batch_values_ = gpmp2::BatchTrajOptimizePose2MobileArm(problem_.robot.marm, problem_.sdf, problem_.pstart,
-      gtsam::Vector::Zero(DOF), problem_.pgoal, gtsam::Vector::Zero(DOF), init_values_, problem_.opt_setting);
+  batch_values_ = gpmp2::BatchTrajOptimizePose2MobileArm(problem_.robot.marm, problem_.sdf, problem_.pstart,
+    gtsam::Vector::Zero(DOF), problem_.pgoal, gtsam::Vector::Zero(DOF), init_values_, problem_.opt_setting);
   ROS_INFO("Batch optimization complete.");
 
   // publish trajectory for visualization or other use
@@ -68,22 +59,11 @@ TurtlebotInterface::TurtlebotInterface(ros::NodeHandle nh)
 
   // set up incremental inference
   ROS_INFO("Initializing incremental inference...");
-  if (!problem_.robot.isMobileBase())
-  {
-    arm_inc_inf_ = gpmp2::ISAM2TrajOptimizer3DArm(problem_.robot.arm, problem_.sdf, problem_.opt_setting);
-    arm_inc_inf_.initFactorGraph(problem_.start_conf, gtsam::Vector::Zero(DOF), problem_.goal_conf, gtsam::Vector::Zero(DOF));
-    arm_inc_inf_.initValues(batch_values_);
-    arm_inc_inf_.update();
-    inc_inf_values_ = arm_inc_inf_.values();
-  }
-  else
-  {
-    marm_inc_inf_ = gpmp2::ISAM2TrajOptimizerPose2MobileArm(problem_.robot.marm, problem_.sdf, problem_.opt_setting);
-    // marm_inc_inf_.initFactorGraph(problem_.pstart, gtsam::Vector::Zero(DOF), problem_.pgoal, gtsam::Vector::Zero(DOF));
-    marm_inc_inf_.initValues(batch_values_);
-    marm_inc_inf_.update();
-    inc_inf_values_ = marm_inc_inf_.values();
-  }
+  marm_inc_inf_ = gpmp2::ISAM2TrajOptimizerPose2MobileArm(problem_.robot.marm, problem_.sdf, problem_.opt_setting);
+  marm_inc_inf_.initFactorGraph(problem_.pstart, gtsam::Vector::Zero(DOF), problem_.pgoal, gtsam::Vector::Zero(DOF));
+  marm_inc_inf_.initValues(batch_values_);
+  marm_inc_inf_.update();
+  inc_inf_values_ = marm_inc_inf_.values();
 
   // View difference between Batch solution and ISAM Init factor graph
   ros::Duration(3.0).sleep();
@@ -103,30 +83,19 @@ void TurtlebotInterface::execute()
   gtsam::Pose2 pose;
 
   // sensor model for measurements
-  if (!problem_.robot.isMobileBase())
-    sensor_model = problem_.robot.sensor_arm_sigma*gtsam::Matrix::Identity(DOF_arm, DOF_arm);
-  else
-    sensor_model = (gtsam::Matrix(DOF, DOF) <<
-      problem_.robot.sensor_base_sigma*gtsam::Matrix::Identity(3, 3), gtsam::Matrix::Zero(3, DOF_arm),
-      gtsam::Matrix::Zero(DOF_arm, 3), problem_.robot.sensor_arm_sigma*gtsam::Matrix::Identity(DOF_arm, DOF_arm)).finished();
+  sensor_model = (gtsam::Matrix(DOF, DOF) <<
+    problem_.robot.sensor_base_sigma*gtsam::Matrix::Identity(3, 3), gtsam::Matrix::Zero(3, DOF_arm),
+    gtsam::Matrix::Zero(DOF_arm, 3), problem_.robot.sensor_arm_sigma*gtsam::Matrix::Identity(DOF_arm, DOF_arm)).finished();
 
   // solve and execute turtlebot problem
   ROS_INFO("Executing turtlebot online...");
   for (size_t step=0; step<problem_.total_step-1; step++)
   {
     // interpolate updated solution to a desired resolution for control until next step and check for collision
-    if (!problem_.robot.isMobileBase())
-    {
-      exec_values_ = gpmp2::interpolateArmTraj(inc_inf_values_, problem_.opt_setting.Qc_model, problem_.delta_t,
-        problem_.control_inter, step, step+1);
-      coll_cost = gpmp2::CollisionCost3DArm(problem_.robot.arm, problem_.sdf, exec_values_, problem_.opt_setting);
-    }
-    else
-    {
-      exec_values_ = gpmp2::interpolatePose2MobileArmTraj(inc_inf_values_, problem_.opt_setting.Qc_model,
-        problem_.delta_t, problem_.control_inter, step, step+1);
-      coll_cost = gpmp2::CollisionCostPose2MobileArm(problem_.robot.marm, problem_.sdf, exec_values_, problem_.opt_setting);
-    }
+    exec_values_ = gpmp2::interpolatePose2MobileArmTraj(inc_inf_values_, problem_.opt_setting.Qc_model,
+      problem_.delta_t, problem_.control_inter, step, step+1);
+    coll_cost = gpmp2::CollisionCostPose2MobileArm(problem_.robot.marm, problem_.sdf, exec_values_, problem_.opt_setting);
+
     if (coll_cost != 0)
     {
       ROS_FATAL_STREAM("At step = "<<step<<", plan is not collision free! Collision cost = "<<coll_cost);
@@ -139,32 +108,16 @@ void TurtlebotInterface::execute()
 
     // get current state and use if it was measured recently then
     // update factor graph to perform incremental inference
-    if (!problem_.robot.isMobileBase())
+    if (((ros::Time::now() - arm_pos_time_).toSec() < 5) && ((ros::Time::now() - base_pos_time_).toSec() < 5))
     {
-      if ((ros::Time::now() - arm_pos_time_).toSec() < 5)
-      {
-        conf = arm_pos_;
-        if (problem_.robot.isThetaNeg())
-          problem_.robot.negateTheta(conf);
-        // update
-        arm_inc_inf_.addPoseEstimate(step+1, conf, sensor_model);
-        arm_inc_inf_.update();
-        inc_inf_values_ = arm_inc_inf_.values();
-      }
-    }
-    else
-    {
-      if (((ros::Time::now() - arm_pos_time_).toSec() < 5) && ((ros::Time::now() - base_pos_time_).toSec() < 5))
-      {
-        pose = base_pos_;
-        conf = arm_pos_;
-        if (problem_.robot.isThetaNeg())
-          problem_.robot.negateTheta(conf);
-        // update
-        marm_inc_inf_.addPoseEstimate(step+1, gpmp2::Pose2Vector(pose, conf), sensor_model);
-        marm_inc_inf_.update();
-        inc_inf_values_ = marm_inc_inf_.values();
-      }
+      pose = base_pos_;
+      conf = arm_pos_;
+      if (problem_.robot.isThetaNeg())
+        problem_.robot.negateTheta(conf);
+      // update
+      marm_inc_inf_.addPoseEstimate(step+1, gpmp2::Pose2Vector(pose, conf), sensor_model);
+      marm_inc_inf_.update();
+      inc_inf_values_ = marm_inc_inf_.values();
     }
 
     // publish trajectory for visualization or other use
