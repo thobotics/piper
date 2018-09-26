@@ -85,8 +85,8 @@ option(BUILD_TURTLEBOT_INTERFACE "whether to build interface for TURTLEBOT" OFF)
 #######################################################
 include_directories(piper/mobilerobot/)
 
-file(GLOB BASE_SRC "piper/mobilerobot/*.cpp")
-add_library(pipermobilerobot ${BASE_SRC})
+file(GLOB MOBILEROBOT_SRC "piper/mobilerobot/*.cpp")
+add_library(pipermobilerobot ${MOBILEROBOT_SRC})
 
 target_link_libraries(pipermobilerobot
   ${catkin_LIBRARIES}

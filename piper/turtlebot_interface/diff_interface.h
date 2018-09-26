@@ -17,7 +17,7 @@
 #include <problem.h>
 #include <traj.h>
 #include <misc.h>
-#include <diff_all.h>
+#include <diff_base.h>
 
 
 namespace piper {
