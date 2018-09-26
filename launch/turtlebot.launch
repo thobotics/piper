@@ -10,6 +10,7 @@
   - rviz view
  -->
 <launch>
+  <arg name="diff_drive" default="true"/>
   <arg name="base"       default="$(optenv TURTLEBOT_BASE kobuki)"/>  <!-- create, rhoomba -->
   <arg name="stacks"     default="$(optenv TURTLEBOT_STACKS hexagons)"/>  <!-- circles, hexagons -->
   <arg name="3d_sensor"  default="$(optenv TURTLEBOT_3D_SENSOR asus_xtion_pro)"/>  <!-- kinect, asus_xtion_pro -->
@@ -66,9 +67,9 @@
   <!--  ****** Move_base ******  -->
   <!-- <include file="$(find turtlebot_mpepc)/launch/includes/move_base.launch.xml"/> -->
   <node name="trajfeedback" pkg="piper" type="turtlebot_traj_server.py" output="screen">
-    <!-- <param name="frame_id" value="/map"/> -->
+    <param name="diff_drive" value="$(arg diff_drive)" />
   </node>
-  <node name="steap_visualize" pkg="piper" type="steap_visualize.py">
+  <node name="steap_visualize" pkg="piper" type="steap_visualize.py" output="screen">
     <!-- <param name="frame_id" value="/map"/> -->
   </node>
 

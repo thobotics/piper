@@ -29,7 +29,7 @@ class Robot
     double sensor_arm_sigma, sensor_base_sigma;
  
   private:
-    bool mobile_base_;
+    bool mobile_base_, diff_drive_;
     int DOF_, DOF_arm_;
     std::vector<double> a_, alpha_, d_, theta_;
     std::vector<bool> theta_neg_;
@@ -54,6 +54,9 @@ class Robot
 
     /// check to see if robot has a mobile base
     inline bool isMobileBase() const { return mobile_base_; }
+
+    /// check to see if robot has a mobile base
+    inline bool isDifferentialDrive() const { return diff_drive_; }
 
     /// get DOF for full body robot
     inline int getDOF() const { return DOF_; }

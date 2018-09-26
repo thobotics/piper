@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot" default="vector_diff" />
+  <arg name="problem" default="example_vector" />
+
+  <node name="diff_interface" pkg="piper" type="diff_interface" output="screen" launch-prefix="gdb -ex run --args" />
+
+  <rosparam command="load" file="$(find piper)/config/$(arg robot).yaml" />
+  <rosparam command="load" file="$(find piper)/problem/$(arg problem).yaml" />
+</launch>

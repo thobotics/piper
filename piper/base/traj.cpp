@@ -69,9 +69,16 @@ void Traj::initializeTrajectory(gtsam::Values& init_values, Problem& problem)
   else
   {
     gtsam::Pose2 pose;
-    avg_vel = (gtsam::Vector(problem.robot.getDOF()) << problem.goal_pose.x()-problem.start_pose.x(), 
-      problem.goal_pose.y()-problem.start_pose.y(), problem.goal_pose.theta()-problem.start_pose.theta(), 
-      problem.goal_conf - problem.start_conf).finished()/problem.total_time;
+    if (problem.robot.isDifferentialDrive()){
+      avg_vel = (gtsam::Vector(problem.robot.getDOF()-1) << problem.goal_pose.x()-problem.start_pose.x(),
+        problem.goal_pose.theta()-problem.start_pose.theta(),
+        problem.goal_conf - problem.start_conf).finished()/problem.total_time;
+    }else{
+      avg_vel = (gtsam::Vector(problem.robot.getDOF()) << problem.goal_pose.x()-problem.start_pose.x(),
+        problem.goal_pose.y()-problem.start_pose.y(), problem.goal_pose.theta()-problem.start_pose.theta(),
+        problem.goal_conf - problem.start_conf).finished()/problem.total_time;
+    }
+
     for (size_t i=0; i<problem.total_step; i++)
     {
       double ratio = static_cast<double>(i)/static_cast<double>(problem.total_step-1);
@@ -113,8 +120,9 @@ void Traj::executeTrajectory(gtsam::Values& exec_values, Problem& problem, size_
     }
     else
     {
+      int vel_size = problem.robot.isDifferentialDrive() ? DOF -1 : DOF;
       traj_.trajectory.points[i].positions.resize(DOF);
-      traj_.trajectory.points[i].velocities.resize(DOF);
+      traj_.trajectory.points[i].velocities.resize(vel_size);
       pose = exec_values.at<gpmp2::Pose2Vector>(gtsam::Symbol('x',i)).pose();
       conf = exec_values.at<gpmp2::Pose2Vector>(gtsam::Symbol('x',i)).configuration();
       vel = exec_values.at<gtsam::Vector>(gtsam::Symbol('v',i));
@@ -125,7 +133,7 @@ void Traj::executeTrajectory(gtsam::Values& exec_values, Problem& problem, size_
       traj_.trajectory.points[i].positions[2] = pose.theta();
       for (size_t j=0; j<DOF_arm; j++)
         traj_.trajectory.points[i].positions[j+3] = conf[j];
-      for (size_t j=0; j<DOF; j++)
+      for (size_t j=0; j<vel_size; j++)
         traj_.trajectory.points[i].velocities[j] = vel[j];
     }
     traj_.trajectory.points[i].time_from_start = ros::Duration(i*problem.delta_t/(problem.control_inter+1));
@@ -175,7 +183,7 @@ void Traj::publishEstimatedTrajectory(gtsam::Values& values, Problem& problem, s
 /* ************************************************************************** */
 void Traj::publishPlannedTrajectory(gtsam::Values& values, Problem& problem, size_t step)
 {
-  gtsam::Vector conf;
+  gtsam::Vector conf, vel;
   gtsam::Pose2 pose;
   trajectory_msgs::JointTrajectory plan_traj;
   plan_traj.points.resize(problem.total_step-step);
@@ -202,6 +210,12 @@ void Traj::publishPlannedTrajectory(gtsam::Values& values, Problem& problem, siz
       plan_traj.points[i-step].positions[2] = pose.theta();
       for (size_t j=0; j<problem.robot.getDOFarm(); j++)
         plan_traj.points[i-step].positions[j+3] = conf[j];
+
+      vel = values.at<gtsam::Vector>(gtsam::Symbol('v',i));
+      int vel_size = problem.robot.isDifferentialDrive() ? problem.robot.getDOF()-1 : problem.robot.getDOF();
+      plan_traj.points[i-step].velocities.resize(problem.robot.getDOF()-1);
+      for (size_t j=0; j<vel_size; j++)
+        plan_traj.points[i-step].velocities[j] = vel[j];
     }
   }
   plan_traj_pub.publish(plan_traj);

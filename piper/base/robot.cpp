@@ -20,6 +20,10 @@ Robot::Robot(ros::NodeHandle nh)
     nh.getParam("robot/mobile_base", mobile_base_);
   else
     mobile_base_ = false;
+  if (nh.hasParam("robot/diff_drive"))
+    nh.getParam("robot/diff_drive", diff_drive_);
+  else
+    diff_drive_ = false;
   if (nh.hasParam("robot/arm_base/orientation"))
     nh.getParam("robot/arm_base/orientation", orientation_); // quaternion: [x, y, z, w]
   else

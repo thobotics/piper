@@ -80,6 +80,24 @@ option(BUILD_GPMP2_INTERFACE "whether to build interface for batch GPMP2" OFF)
 option(BUILD_STEAP_INTERFACE "whether to build interface for STEAP" OFF)
 option(BUILD_TURTLEBOT_INTERFACE "whether to build interface for TURTLEBOT" OFF)
 
+#######################################################
+##                    mobilerobot                    ##
+#######################################################
+include_directories(piper/mobilerobot/)
+
+file(GLOB BASE_SRC "piper/mobilerobot/*.cpp")
+add_library(pipermobilerobot ${BASE_SRC})
+
+target_link_libraries(pipermobilerobot
+  ${catkin_LIBRARIES}
+  ${GTSAM_LIBRARIES}
+  ${gpmp2_LIBRARIES}
+)
+
+install(DIRECTORY piper/mobilerobot/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
+)
 
 ################################################
 ##                    all                     ##
@@ -134,21 +152,23 @@ if(BUILD_STEAP_INTERFACE)
   )
 endif()
 
-################################################
+####################################################
 ##              turtlebot_interface               ##
-################################################
+####################################################
 if(BUILD_TURTLEBOT_INTERFACE)
   include_directories(piper/turtlebot_interface/)
 
   # file(GLOB TURTLEBOT_INTERFACE_SRC "piper/turtlebot_interface/*.cpp")
   # add_executable(turtlebot_interface ${TURTLEBOT_INTERFACE_SRC})
   add_executable(turtlebot_interface piper/turtlebot_interface/turtlebot_interface.cpp)
+  add_executable(diff_interface piper/turtlebot_interface/diff_interface.cpp)
   add_executable(ros_sdf piper/turtlebot_interface/ros_sdf.cpp)
 
   target_link_libraries(turtlebot_interface piperbase)
+  target_link_libraries(diff_interface piperbase pipermobilerobot)
   target_link_libraries(ros_sdf piperbase)
 
-  install(TARGETS turtlebot_interface ros_sdf
+  install(TARGETS turtlebot_interface diff_interface ros_sdf
     RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
 

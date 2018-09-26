@@ -87,6 +87,6 @@ turtlebot
   color "black"
 )
 
-block( pose [ 7.5 8.3 0.000 180.000 ] color "red")
-block2( pose [ 11.9 10.9 0.000 180.000 ] color "red")
-block3( pose [ 17.7 9.2 0.000 180.000 ] color "red")
+#block( pose [ 7.5 8.3 0.000 180.000 ] color "red")
+#block2( pose [ 11.9 10.9 0.000 180.000 ] color "red")
+#block3( pose [ 17.7 9.2 0.000 180.000 ] color "red")

@@ -73,7 +73,10 @@ Problem::Problem(ros::NodeHandle nh)
   opt_setting.epsilon = epsilon;
   opt_setting.Qc_model = gtsam::noiseModel::Gaussian::Covariance(Qc_*gtsam::Matrix::Identity(DOF, DOF));
   opt_setting.conf_prior_model = gtsam::noiseModel::Isotropic::Sigma(DOF, fix_pose_sigma_);
-  opt_setting.vel_prior_model = gtsam::noiseModel::Isotropic::Sigma(DOF, fix_vel_sigma_);
+  if (robot.isDifferentialDrive())
+    opt_setting.vel_prior_model = gtsam::noiseModel::Isotropic::Sigma(DOF-1, fix_vel_sigma_);
+  else
+    opt_setting.vel_prior_model = gtsam::noiseModel::Isotropic::Sigma(DOF, fix_vel_sigma_);
   if (opt_type_ == "LM")
     opt_setting.opt_type = gpmp2::TrajOptimizerSetting::LM;
   else if (opt_type_ == "Dogleg")

@@ -3,6 +3,7 @@
 import rospy
 import tf
 import actionlib
+import numpy as np
 
 import control_msgs.msg
 from geometry_msgs.msg import Pose, Twist, PoseStamped, Vector3Stamped
@@ -10,6 +11,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory
 
+is_diff_drive_ = True
 base_pose_pub_ = None
 arm_pub_ = None
 listener_ = None
@@ -43,6 +45,9 @@ class TrajAction(object):
 
         for p in goal.trajectory.points:
 
+            # np.set_printoptions(precision=3)
+            # print(np.array(p.velocities))
+
             # # check that preempt has not been requested by the client
             # if self._as.is_preempt_requested():
             #     rospy.loginfo('%s: Preempted' % self._action_name)
@@ -50,11 +55,13 @@ class TrajAction(object):
             #     success = False
             #     break
 
-            action = p.velocities[:3]
-
-            twist.linear.x = action[0]
-            twist.linear.y = action[1]
-            twist.angular.z = action[2]
+            if is_diff_drive_:
+                twist.linear.x = p.velocities[0]
+                twist.angular.z = p.velocities[1]
+            else:
+                twist.linear.x = p.velocities[0]
+                twist.linear.y = p.velocities[1]
+                twist.angular.z = p.velocities[2]
 
             self._cmd_pub.publish(twist)
 
@@ -90,10 +97,11 @@ def odom_cb(data):
 if __name__ == '__main__':
     rospy.init_node('trajfeedback', anonymous=True)
 
-    global base_pose_pub_, listener_
+    global base_pose_pub_, listener_, is_diff_drive_
     base_pose_pub_ = rospy.Publisher('/base_state', Pose, queue_size=10)
     arm_pub_ = rospy.Publisher('/joint_states', JointState, queue_size=10)
     listener_ = tf.TransformListener()
+    is_diff_drive_ = rospy.get_param('~diff_drive')
 
     rospy.Subscriber("/odom", Odometry, odom_cb)
     server = TrajAction("/vector/full_body_controller/trajectory")
