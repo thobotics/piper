@@ -65,12 +65,12 @@ namespace piper{
         using namespace gtsam;
 
         gtsam::Pose2 p_pose1 = pose1.pose();
-        Vector v_pose1 = pose1.configuration();
+        Vector c_pose1 = pose1.configuration();
         gtsam::Pose2 p_pose2 = pose2.pose();
-        Vector v_pose2 = pose2.configuration();
+        Vector c_pose2 = pose2.configuration();
 
-        Vector mstate1 = (Vector(dof_) << p_pose1.x(), p_pose1.y(), p_pose1.theta(), v_pose1).finished();
-        Vector mstate2 = (Vector(dof_) << p_pose2.x(), p_pose2.y(), p_pose2.theta(), v_pose2).finished();
+        Vector mstate1 = (Vector(dof_) << p_pose1.x(), p_pose1.y(), p_pose1.theta(), c_pose1).finished();
+        Vector mstate2 = (Vector(dof_) << p_pose2.x(), p_pose2.y(), p_pose2.theta(), c_pose2).finished();
 
         // convert naive vector state to differential drive kinematic model
         Matrix Hdiff1_1, Hdiff1_2, Hdiff2_1, Hdiff2_2;
@@ -82,8 +82,8 @@ namespace piper{
           Vector3(p_pose2.x(), p_pose2.y(), p_pose2.theta()), Vector2(vel2[0], vel2[1]),
           Hdiff2_1, Hdiff2_2
         );
-        Vector mvel1 = (Vector(dof_) << diff_vel1, v_pose1.tail(dof_-3)).finished();
-        Vector mvel2 = (Vector(dof_) << diff_vel2, v_pose2.tail(dof_-3)).finished();
+        Vector mvel1 = (Vector(dof_) << diff_vel1, c_pose1.tail(dof_-3)).finished();
+        Vector mvel2 = (Vector(dof_) << diff_vel2, c_pose2.tail(dof_-3)).finished();
 
         // state vector
         Vector x1 = (Vector(2*dof_) << mstate1, mvel1).finished();
@@ -146,12 +146,12 @@ namespace piper{
         using namespace gtsam;
 
         gtsam::Pose2 p_pose1 = pose1.pose();
-        Vector v_pose1 = pose1.configuration();
+        Vector c_pose1 = pose1.configuration();
         gtsam::Pose2 p_pose2 = pose2.pose();
-        Vector v_pose2 = pose2.configuration();
+        Vector c_pose2 = pose2.configuration();
 
-        Vector mstate1 = (Vector(dof_) << p_pose1.x(), p_pose1.y(), p_pose1.theta(), v_pose1).finished();
-        Vector mstate2 = (Vector(dof_) << p_pose2.x(), p_pose2.y(), p_pose2.theta(), v_pose2).finished();
+        Vector mstate1 = (Vector(dof_) << p_pose1.x(), p_pose1.y(), p_pose1.theta(), c_pose1).finished();
+        Vector mstate2 = (Vector(dof_) << p_pose2.x(), p_pose2.y(), p_pose2.theta(), c_pose2).finished();
 
         // convert naive vector state to differential drive kinematic model
         Matrix Hdiff1_1, Hdiff1_2, Hdiff2_1, Hdiff2_2;
@@ -163,8 +163,8 @@ namespace piper{
           Vector3(p_pose2.x(), p_pose2.y(), p_pose2.theta()), Vector2(vel2[0], vel2[1]),
           Hdiff2_1, Hdiff2_2
         );
-        Vector mvel1 = (Vector(dof_) << diff_vel1, v_pose1.tail(dof_-3)).finished();
-        Vector mvel2 = (Vector(dof_) << diff_vel2, v_pose2.tail(dof_-3)).finished();
+        Vector mvel1 = (Vector(dof_) << diff_vel1, c_pose1.tail(dof_-3)).finished();
+        Vector mvel2 = (Vector(dof_) << diff_vel2, c_pose2.tail(dof_-3)).finished();
 
         // state vector
         Vector x1 = (Vector(2*dof_) << mstate1, mvel1).finished();

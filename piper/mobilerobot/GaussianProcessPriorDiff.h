@@ -59,12 +59,12 @@ namespace piper{
         using namespace gtsam;
 
         gtsam::Pose2 p_pose1 = pose1.pose();
-        Vector v_pose1 = pose1.configuration();
+        Vector c_pose1 = pose1.configuration();
         gtsam::Pose2 p_pose2 = pose2.pose();
-        Vector v_pose2 = pose2.configuration();
+        Vector c_pose2 = pose2.configuration();
 
-        Vector mstate1 = (Vector(dof_) << p_pose1.x(), p_pose1.y(), p_pose1.theta(), v_pose1).finished();
-        Vector mstate2 = (Vector(dof_) << p_pose2.x(), p_pose2.y(), p_pose2.theta(), v_pose2).finished();
+        Vector mstate1 = (Vector(dof_) << p_pose1.x(), p_pose1.y(), p_pose1.theta(), c_pose1).finished();
+        Vector mstate2 = (Vector(dof_) << p_pose2.x(), p_pose2.y(), p_pose2.theta(), c_pose2).finished();
 
         // convert naive vector state to differential drive kinematic model
         Matrix Hdiff1_1, Hdiff1_2, Hdiff2_1, Hdiff2_2;
@@ -76,8 +76,8 @@ namespace piper{
           Vector3(p_pose2.x(), p_pose2.y(), p_pose2.theta()), Vector2(vel2[0], vel2[1]),
           Hdiff2_1, Hdiff2_2
         );
-        Vector mvel1 = (Vector(dof_) << diff_vel1, v_pose1.tail(dof_-3)).finished();
-        Vector mvel2 = (Vector(dof_) << diff_vel2, v_pose2.tail(dof_-3)).finished();
+        Vector mvel1 = (Vector(dof_) << diff_vel1, c_pose1.tail(dof_-3)).finished();
+        Vector mvel2 = (Vector(dof_) << diff_vel2, c_pose2.tail(dof_-3)).finished();
 
         // state vector
         Vector x1 = (Vector(2*dof_) << mstate1, mvel1).finished();
@@ -85,17 +85,6 @@ namespace piper{
 
         // Jacobians
         if (H1){
-            // gtsam::Matrix de_x1_h = (Matrix(3, 3) <<
-            //   Vector3(1.0,  0,    -delta_t_*vel1[0]*sin(p_pose1.theta())),
-            //   Vector3(0,    1.0,  delta_t_*vel1[0]*cos(p_pose1.theta())),
-            //   Vector3(0,    0,    1.0)
-            // ).finished();
-            // gtsam::Matrix de_x1_l = (Matrix(3, 3) <<
-            //    Vector3(0,    0,   -vel1[0]*sin(p_pose1.theta())),
-            //    Vector3(0,    0,   vel1[0]*cos(p_pose1.theta())),
-            //    Vector3(0,    0,   0)
-            //  ).finished();
-
             gtsam::Matrix high = (Matrix(dof_, dof_) << Matrix::Identity(3, 3) + Hdiff1_1,
                 Matrix::Zero(3, dof_-3), Matrix::Zero(dof_-3, 3),
                 Matrix::Identity(dof_-3, dof_-3)).finished();
@@ -103,37 +92,8 @@ namespace piper{
                 Matrix::Zero(dof_-3, 3), Matrix::Zero(dof_-3, dof_-3)).finished();
 
            *H1 = (Matrix(2*dof_, dof_) << high, low).finished();
-          //  *H1 = (Matrix(2*dof_, dof_) << Matrix::Identity(dof_, dof_),
-          //   Matrix::Zero(dof_, dof_)).finished();
         }
         if (H2){
-          // gtsam::Matrix de_dx1_h = (Matrix(3, 3) <<
-          //    Vector3(delta_t_*cos(p_pose1.theta()),  0,  0),
-          //    Vector3(delta_t_*sin(p_pose1.theta()),  0,  0),
-          //    Vector3(0,    0,    delta_t_)
-          //  ).finished();
-          //  gtsam::Matrix de_dx1_l = (Matrix(3, 3) <<
-          //     Vector3(cos(p_pose1.theta()),    0,   0),
-          //     Vector3(sin(p_pose1.theta()),    0,   0),
-          //     Vector3(0,    0,   1)
-          //   ).finished();
-          //
-          //  gtsam::Matrix high = (Matrix(dof_, dof_) << de_dx1_h.transpose(), Matrix::Zero(3, dof_-3),
-          //      Matrix::Zero(dof_-3, 3), delta_t_ * Matrix::Identity(dof_-3, dof_-3)).finished();
-          //  gtsam::Matrix low = (Matrix(dof_, dof_) << de_dx1_l.transpose(), Matrix::Zero(3, dof_-3),
-          //      Matrix::Zero(dof_-3, 3), Matrix::Identity(dof_-3, dof_-3)).finished();
-
-          // gtsam::Matrix de_dx1_h = (Matrix(2, 3) <<
-          //    Vector2(delta_t_*cos(p_pose1.theta()),  0),
-          //    Vector2(delta_t_*sin(p_pose1.theta()),  0),
-          //    Vector2(0,     delta_t_)
-          //  ).finished();
-          //  gtsam::Matrix de_dx1_l = (Matrix(2, 3) <<
-          //     Vector2(cos(p_pose1.theta()),  0),
-          //     Vector2(sin(p_pose1.theta()),  0),
-          //     Vector2(0,  1)
-          //   ).finished();
-
            gtsam::Matrix high = (Matrix(dof_, dof_-1) << delta_t_ * Hdiff1_2,
                Matrix::Zero(3, dof_-3), Matrix::Zero(dof_-3, 2),
                delta_t_ * Matrix::Identity(dof_-3, dof_-3)).finished();
@@ -141,23 +101,8 @@ namespace piper{
                Matrix::Zero(dof_-3, 2), Matrix::Identity(dof_-3, dof_-3)).finished();
 
           *H2 = (Matrix(2*dof_, dof_-1) << high, low).finished();
-          //  *H2 = (Matrix(2*dof_, dof_) << delta_t_ * Matrix::Identity(dof_, dof_),
-          //   Matrix::Identity(dof_, dof_)).finished();
-
         }
         if (H3){
-
-          //  gtsam::Matrix de_x2_h = (Matrix(3, 3) <<
-          //    Vector3(-1.0,  0,    0),
-          //    Vector3(0,    -1.0,  0),
-          //    Vector3(0,    0,    -1.0)
-          //  ).finished();
-          //  gtsam::Matrix de_x2_l = (Matrix(3, 3) <<
-          //     Vector3(0,    0,   vel2[0]*sin(p_pose2.theta())),
-          //     Vector3(0,    0,   -vel2[0]*cos(p_pose2.theta())),
-          //     Vector3(0,    0,   0)
-          //   ).finished();
-
            gtsam::Matrix high = (Matrix(dof_, dof_) << -1.0 * Matrix::Identity(3, 3),
                Matrix::Zero(3, dof_-3), Matrix::Zero(dof_-3, 3),
                -1.0 * Matrix::Identity(dof_-3, dof_-3)).finished();
@@ -165,46 +110,14 @@ namespace piper{
                Matrix::Zero(dof_-3, 3), Matrix::Zero(dof_-3, dof_-3)).finished();
 
           *H3 = (Matrix(2*dof_, dof_) << high, low).finished();
-          // *H3 = (Matrix(2*dof_, dof_) << -1.0 * Matrix::Identity(dof_, dof_),
-          //   Matrix::Zero(dof_, dof_)).finished();
         }
         if (H4){
-
-          // gtsam::Matrix de_dx2_h = (Matrix(2, 3) <<
-          //    Vector3(0,  0,  0),
-          //    Vector3(0,  0,  0),
-          //    Vector3(0,  0,  0)
-          //  ).finished();
-          //  gtsam::Matrix de_dx2_l = (Matrix(3, 3) <<
-          //     Vector3(-cos(p_pose2.theta()),    0,   0),
-          //     Vector3(-sin(p_pose2.theta()),    0,   0),
-          //     Vector3(0,    0,   -1)
-          //   ).finished();
-          //
-          //  gtsam::Matrix high = (Matrix(dof_, dof_) << de_dx2_h.transpose(), Matrix::Zero(3, dof_-3),
-          //      Matrix::Zero(dof_-3, 3), Matrix::Zero(dof_-3, dof_-3)).finished();
-          //  gtsam::Matrix low = (Matrix(dof_, dof_) << de_dx2_l.transpose(), Matrix::Zero(3, dof_-3),
-          //      Matrix::Zero(dof_-3, 3), -1.0 * Matrix::Identity(dof_-3, dof_-3)).finished();
-
-          //  gtsam::Matrix de_dx2_h = (Matrix(2, 3) <<
-          //    Vector2(0, 0),
-          //    Vector2(0, 0),
-          //    Vector2(0, 0)
-          //  ).finished();
-          //  gtsam::Matrix de_dx2_l = (Matrix(2, 3) <<
-          //     Vector2(-cos(p_pose2.theta()),   0),
-          //     Vector2(-sin(p_pose2.theta()),   0),
-          //     Vector2(0,   -1)
-          //   ).finished();
-
            gtsam::Matrix high = (Matrix(dof_, dof_-1) << Matrix::Zero(3, 2), Matrix::Zero(3, dof_-3),
                Matrix::Zero(dof_-3, 2), Matrix::Zero(dof_-3, dof_-3)).finished();
            gtsam::Matrix low = (Matrix(dof_, dof_-1) << -1.0 * Hdiff2_2, Matrix::Zero(3, dof_-3),
                Matrix::Zero(dof_-3, 2), -1.0 * Matrix::Identity(dof_-3, dof_-3)).finished();
 
           *H4 = (Matrix(2*dof_, dof_-1) << high, low).finished();
-          // *H4 = (Matrix(2*dof_, dof_) << Matrix::Zero(dof_, dof_),
-          //   -1.0 * Matrix::Identity(dof_, dof_)).finished();
         }
 
         // transition matrix & error
