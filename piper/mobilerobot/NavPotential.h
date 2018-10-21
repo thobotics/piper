@@ -29,16 +29,17 @@ private:
   // geometry setting of signed distance field
   size_t field_rows_, field_cols_;
   double cell_size_;
+  double scal_res_;
   gtsam::Matrix data_;
 
 public:
   /// constructor
-  NavPotential() : field_rows_(0), field_cols_(0), cell_size_(0.0) {}
+  NavPotential() : field_rows_(0), field_cols_(0), cell_size_(0.0), scal_res_(0.0) {}
 
   /// constructor with data
-  NavPotential(const gtsam::Point2& origin, double cell_size, const gtsam::Matrix& data) :
+  NavPotential(const gtsam::Point2& origin, double cell_size, double scale_res, const gtsam::Matrix& data) :
       origin_(origin), field_rows_(data.rows()), field_cols_(data.cols()),
-      cell_size_(cell_size), data_(data) {}
+      cell_size_(cell_size), scal_res_(scale_res), data_(data) {}
 
   ~NavPotential() {}
 
@@ -84,7 +85,7 @@ public:
   /// bilinear interpolation
   inline double signed_distance(const float_index& idx) const {
     const double lr = floor(idx.get<0>()), lc = floor(idx.get<1>());
-    const double hr = lr + 5.0, hc = lc + 5.0;
+    const double hr = lr + scal_res_, hc = lc + scal_res_;
     const size_t lri = static_cast<size_t>(lr), lci = static_cast<size_t>(lc),
         hri = static_cast<size_t>(hr), hci = static_cast<size_t>(hc);
 
@@ -101,7 +102,7 @@ public:
   /// not numerical differentiable at index point
   inline gtsam::Vector2 gradient(const float_index& idx) const {
     const double lr = floor(idx.get<0>()), lc = floor(idx.get<1>());
-    const double hr = lr + 5.0, hc = lc + 5.0;
+    const double hr = lr + scal_res_, hc = lc + scal_res_;
     const size_t lri = static_cast<size_t>(lr), lci = static_cast<size_t>(lc),
         hri = static_cast<size_t>(hr), hci = static_cast<size_t>(hc);
 

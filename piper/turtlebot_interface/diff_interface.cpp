@@ -52,8 +52,6 @@ DiffInterface::DiffInterface(ros::NodeHandle nh)
   if (traj_.plan_traj_pub)
     traj_.publishPlannedTrajectory(init_values_, problem_, 0);
 
-  // ros::Duration(5.0).sleep();
-
   // solve for initial plan with batch gpmp2
   ROS_INFO("Optimizing...");
   int DOF = problem_.robot.getDOF();
@@ -161,6 +159,9 @@ void DiffInterface::baseStateCallback(const geometry_msgs::Pose::ConstPtr& msg)
 /* ************************************************************************** */
 void DiffInterface::navCostCallback(const nav_msgs::OccupancyGrid::ConstPtr& grid)
 {
+  double score_scale = 0.001;
+  double scale_res = 100*grid->info.resolution;
+
   // Parse data
   gtsam::Matrix data2d(grid->info.height, grid->info.width);
 
@@ -169,13 +170,10 @@ void DiffInterface::navCostCallback(const nav_msgs::OccupancyGrid::ConstPtr& gri
     for(int j=0; j<grid->info.width; j++){
       double tmp_score = grid->data[i*grid->info.height+j];
       row[j] = tmp_score == -1 ? 100 : tmp_score;
-      row[j] *= 0.001;
+      row[j] *= score_scale;
     }
     data2d.row(i) = row;
   }
-
-  // Debuging
-  // gtsam::print(data2d, "Matrix", std::cout);
 
   // Load metadata
   gtsam::Point2 origin(grid->info.origin.position.x,
@@ -183,16 +181,16 @@ void DiffInterface::navCostCallback(const nav_msgs::OccupancyGrid::ConstPtr& gri
   double cell_size = grid->info.resolution;
 
   // Save SDF
-  potential_arr_ = piper::NavPotential(origin, cell_size, data2d);
+  potential_arr_ = piper::NavPotential(origin, cell_size, scale_res, data2d);
 
-  printf("Width Height %d %d\n", grid->info.width, grid->info.height);
-  printf("Origin %f %f - res %f\n", origin[0], origin[1], cell_size);
+  ROS_INFO("[NavPotential] Width %d, Height %d", grid->info.width, grid->info.height);
+  ROS_INFO("[NavPotential] Origin %f %f, Resolution %f", origin[0], origin[1], cell_size);
 
   // Debugging
   geometry_msgs::PoseArray grad_poses;
   gtsam::Vector2 gradient;
   double potential;
-  double max_score = 0.001*(100.0*5.0*5.0 - 1);
+  double max_score = score_scale*(100.0*scale_res*scale_res - 1);
   grad_poses.header.frame_id = "/map";
   grad_poses.header.stamp = ros::Time::now();
   for (int y=1; y<19; y++){
@@ -212,7 +210,7 @@ void DiffInterface::navCostCallback(const nav_msgs::OccupancyGrid::ConstPtr& gri
 
         grad_poses.poses.push_back(grad_pose);
 
-        printf("x %d, y %d: potential %f \t gradient %f, %f\n",
+        ROS_DEBUG("[NavPotential] x %d, y %d: potential %f \t gradient %f, %f",
             x, y, potential, gradient[0], gradient[1]);
       }
     }

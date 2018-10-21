@@ -79,33 +79,18 @@ namespace piper {
             setting.vel_limit_thresh));
       }
 
-      // non-interpolated cost factor
-      // graph.add(OBS_FACTOR(pose_key, arm, sdf, setting.cost_sigma, setting.epsilon));
-
+      // Navigation Function factor
       graph.add(NavFnDiff(pose_key, pot, setting.cost_sigma, arm.dof()));
-
-      // graph.add(NavFnHingleDiff<ROBOT>(pose_key, arm, pot, setting.cost_sigma, 0.3));
 
       if (i > 0) {
         Key last_pose_key = Symbol('x', i-1);
         Key last_vel_key = Symbol('v', i-1);
-
-        // interpolated cost factor
-        // if (setting.obs_check_inter > 0) {
-        //   for (size_t j = 1; j <= setting.obs_check_inter; j++) {
-        //     const double tau = inter_dt * static_cast<double>(j);
-        //     graph.add(OBS_FACTOR_GP(last_pose_key, last_vel_key, pose_key, vel_key, arm, sdf,
-        //         setting.cost_sigma, setting.epsilon, setting.Qc_model, delta_t, tau));
-        //   }
-        // }
 
         // GP factor
         graph.add(GP(last_pose_key, last_vel_key, pose_key, vel_key, delta_t,
             setting.Qc_model));
       }
     }
-
-    printf("*** Adding factor\n");
 
     return optimize(graph, init_values, setting);
   }

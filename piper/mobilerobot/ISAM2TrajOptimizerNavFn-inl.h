@@ -64,26 +64,12 @@ void ISAM2TrajOptimizerNavFn<ROBOT, GP, SDF, OBS_FACTOR, OBS_FACTOR_GP, LIMIT_FA
           setting_.vel_limit_thresh));
     }
 
-    // non-interpolated cost factor
-    // inc_graph_.add(OBS_FACTOR(pose_key, arm_, sdf_, setting_.cost_sigma, setting_.epsilon));
-
+    // Navigation Function factor
     inc_graph_.add(NavFnDiff(pose_key, pot_, setting_.cost_sigma, arm_.dof()));
-
-    // inc_graph_.add(NavFnHingleDiff<ROBOT>(pose_key, arm_, pot_, setting_.cost_sigma, 0.3));
 
     if (i > 0) {
       Key last_pose_key = Symbol('x', i-1);
       Key last_vel_key = Symbol('v', i-1);
-
-      // interpolated cost factor
-      // if (setting_.obs_check_inter > 0) {
-      //   for (size_t j = 1; j <= setting_.obs_check_inter; j++) {
-      //     const double tau = inter_dt * static_cast<double>(j);
-      //     inc_graph_.add(OBS_FACTOR_GP(last_pose_key, last_vel_key, pose_key, vel_key,
-      //         arm_, sdf_,setting_.cost_sigma, setting_.epsilon, setting_.Qc_model,
-      //         delta_t, tau));
-      //   }
-      // }
 
       // GP factor
       inc_graph_.add(GP(last_pose_key, last_vel_key, pose_key, vel_key, delta_t,
@@ -127,8 +113,6 @@ void ISAM2TrajOptimizerNavFn<ROBOT, GP, SDF, OBS_FACTOR, OBS_FACTOR_GP, LIMIT_FA
 
   using namespace gtsam;
 
-  printf("[changeGoalConfigAndVel] called\n");
-
   // add old eq factor' index in remove list
   removed_factor_index_.push_back(goal_conf_factor_idx_);
   removed_factor_index_.push_back(goal_vel_factor_idx_);
@@ -154,8 +138,6 @@ void ISAM2TrajOptimizerNavFn<ROBOT, GP, SDF, OBS_FACTOR, OBS_FACTOR_GP, LIMIT_FA
 
   using namespace gtsam;
 
-  printf("[removeGoalConfigAndVel] called\n");
-
   // add goal factor index in remove list
   if (!goal_removed_) {
     removed_factor_index_.push_back(goal_conf_factor_idx_);
@@ -172,8 +154,6 @@ void ISAM2TrajOptimizerNavFn<ROBOT, GP, SDF, OBS_FACTOR, OBS_FACTOR_GP, LIMIT_FA
 
   using namespace gtsam;
 
-  printf("[fixConfigAndVel] called\n");
-
   // fix conf and vel at given pose index
   inc_graph_.add(PriorFactor<Pose>(Symbol('x', state_idx), conf_fix, setting_.conf_prior_model));
   inc_graph_.add(PriorFactor<Velocity>(Symbol('v', state_idx), vel_fix, setting_.vel_prior_model));
@@ -187,8 +167,6 @@ void ISAM2TrajOptimizerNavFn<ROBOT, GP, SDF, OBS_FACTOR, OBS_FACTOR_GP, LIMIT_FA
 
   using namespace gtsam;
 
-  printf("[addPoseEstimate] x %f y %f called\n", pose.pose().x(), pose.pose().y());
-
   // estimate for pose at given index
   inc_graph_.add(PriorFactor<Pose>(Symbol('x', state_idx), pose, noiseModel::Gaussian::Covariance(pose_cov)));
 }
@@ -201,8 +179,6 @@ void ISAM2TrajOptimizerNavFn<ROBOT, GP, SDF, OBS_FACTOR, OBS_FACTOR_GP, LIMIT_FA
     const Velocity& vel, const Matrix& vel_cov) {
 
   using namespace gtsam;
-
-  printf("[addStateEstimate] called\n");
 
   // estimate for pose and vel at given index
   inc_graph_.add(PriorFactor<Pose>(Symbol('x', state_idx), pose, noiseModel::Gaussian::Covariance(pose_cov)));

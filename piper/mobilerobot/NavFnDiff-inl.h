@@ -18,9 +18,9 @@ inline double navCost(const gtsam::Point2& point, const NavPotential& pot,
     dist_signed = pot.getSignedDistance(point, field_gradient);
   } catch (SDFQueryOutOfRange&) {
     std::cout << "[navCost] WARNING: querying navigation potential out of range, "
-       "assume zero potential cost." << std::endl;
+        << point[0] << ", " << point[1] << ", assume max potential cost." << std::endl;
     if (H_point) *H_point = gtsam::Matrix12::Zero();
-    return 0.0;
+    return 10.0;
   }
 
   if (H_point) *H_point = field_gradient.transpose();
