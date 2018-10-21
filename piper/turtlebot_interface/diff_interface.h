@@ -9,6 +9,9 @@
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Bool.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseArray.h>
+#include <nav_msgs/OccupancyGrid.h>
+#include <gpmp2/obstacle/PlanarSDF.h>
 
 #include <gpmp2/planner/BatchTrajOptimizer.h>
 #include <gpmp2/planner/ISAM2TrajOptimizer.h>
@@ -18,7 +21,7 @@
 #include <traj.h>
 #include <misc.h>
 #include <diff_base.h>
-
+#include <NavPotential.h>
 
 namespace piper {
 
@@ -31,11 +34,16 @@ class DiffInterface
     // gpmp2::ISAM2TrajOptimizerPose2MobileArm marm_inc_inf_;
     piper::ISAM2TrajOptimizerPose2MobileDiff marm_inc_inf_;
 
-    std::string arm_state_topic_, base_state_topic_;
-    ros::Subscriber arm_state_sub_, base_state_sub_;
+    std::string arm_state_topic_, base_state_topic_, potential_topic_;
+    ros::Subscriber arm_state_sub_, base_state_sub_, navfn_cost_sub_;
     gtsam::Vector arm_pos_;
     gtsam::Pose2 base_pos_;
-    ros::Time arm_pos_time_, base_pos_time_;
+    ros::Time arm_pos_time_, base_pos_time_, nav_cost_time_;
+
+    // Navigation Cost stuff
+    // PlanarSDF potential_arr_;
+    NavPotential potential_arr_;
+    ros::Publisher pot_grad_pub_;
 
   public:
     /// Default constructor
@@ -69,6 +77,13 @@ class DiffInterface
      *  @param msg message from base state subscriber
      **/
     void baseStateCallback(const geometry_msgs::Pose::ConstPtr& msg);
+
+    /**
+     *  Call back to get current potential from global planner
+     *
+     *  @param msg message from navigation cost subscriber
+     **/
+    void navCostCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
 };
 
 }

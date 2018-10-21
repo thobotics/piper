@@ -1,4 +1,6 @@
 #include <diff_interface.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <math.h>
 
 
 namespace piper {
@@ -22,9 +24,13 @@ DiffInterface::DiffInterface(ros::NodeHandle nh)
   if (problem_.robot.isMobileBase() && nh.hasParam("robot/base_state_topic"))
   {
     nh.getParam("robot/base_state_topic", base_state_topic_);
+    potential_topic_ = "/planner/planner/potential";
     base_state_sub_ = nh.subscribe(base_state_topic_, 1, &DiffInterface::baseStateCallback, this);
+    navfn_cost_sub_ = nh.subscribe(potential_topic_, 1, &DiffInterface::navCostCallback, this);
+    pot_grad_pub_ = nh.advertise<geometry_msgs::PoseArray>("/pot_grad_topic", 1);
     base_pos_ = gtsam::Pose2();
     base_pos_time_ = ros::Time::now();
+    nav_cost_time_ = ros::Time::now();
   }
   ros::Duration(1.0).sleep();
 
@@ -36,14 +42,23 @@ DiffInterface::DiffInterface(ros::NodeHandle nh)
     problem_.pstart = gpmp2::Pose2Vector(problem_.start_pose, problem_.start_conf);
   }
 
+  // call global planner
+  traj_.potentialNavigation(problem_);
+
   // initialize trajectory
   traj_.initializeTrajectory(init_values_, problem_);
+
+  // Publish init plan
+  if (traj_.plan_traj_pub)
+    traj_.publishPlannedTrajectory(init_values_, problem_, 0);
+
+  // ros::Duration(5.0).sleep();
 
   // solve for initial plan with batch gpmp2
   ROS_INFO("Optimizing...");
   int DOF = problem_.robot.getDOF();
-  batch_values_ = piper::BatchTrajOptimizePose2MobileDiff(problem_.robot.marm, problem_.sdf, problem_.pstart,
-    gtsam::Vector::Zero(DOF-1), problem_.pgoal, gtsam::Vector::Zero(DOF-1), init_values_, problem_.opt_setting);
+  batch_values_ = piper::BatchTrajOptimizePose2MobileDiff(problem_.robot.marm, problem_.sdf, potential_arr_,
+     problem_.pstart, gtsam::Vector::Zero(DOF-1), problem_.pgoal, gtsam::Vector::Zero(DOF-1), init_values_, problem_.opt_setting);
   ROS_INFO("Batch optimization complete.");
 
   // publish trajectory for visualization or other use
@@ -54,7 +69,7 @@ DiffInterface::DiffInterface(ros::NodeHandle nh)
 
   // set up incremental inference
   ROS_INFO("Initializing incremental inference...");
-  marm_inc_inf_ = piper::ISAM2TrajOptimizerPose2MobileDiff(problem_.robot.marm, problem_.sdf, problem_.opt_setting);
+  marm_inc_inf_ = piper::ISAM2TrajOptimizerPose2MobileDiff(problem_.robot.marm, problem_.sdf, potential_arr_, problem_.opt_setting);
   marm_inc_inf_.initFactorGraph(problem_.pstart, gtsam::Vector::Zero(DOF-1), problem_.pgoal, gtsam::Vector::Zero(DOF-1));
   marm_inc_inf_.initValues(batch_values_);
   marm_inc_inf_.update();
@@ -143,6 +158,70 @@ void DiffInterface::baseStateCallback(const geometry_msgs::Pose::ConstPtr& msg)
   base_pos_time_ = ros::Time::now();
 }
 
+/* ************************************************************************** */
+void DiffInterface::navCostCallback(const nav_msgs::OccupancyGrid::ConstPtr& grid)
+{
+  // Parse data
+  gtsam::Matrix data2d(grid->info.height, grid->info.width);
+
+  gtsam::Vector row = gtsam::Vector::Zero(grid->info.width);
+  for(int i=0; i<grid->info.height; i++){
+    for(int j=0; j<grid->info.width; j++){
+      double tmp_score = grid->data[i*grid->info.height+j];
+      row[j] = tmp_score == -1 ? 100 : tmp_score;
+      row[j] *= 0.001;
+    }
+    data2d.row(i) = row;
+  }
+
+  // Debuging
+  // gtsam::print(data2d, "Matrix", std::cout);
+
+  // Load metadata
+  gtsam::Point2 origin(grid->info.origin.position.x,
+    grid->info.origin.position.y);
+  double cell_size = grid->info.resolution;
+
+  // Save SDF
+  potential_arr_ = piper::NavPotential(origin, cell_size, data2d);
+
+  printf("Width Height %d %d\n", grid->info.width, grid->info.height);
+  printf("Origin %f %f - res %f\n", origin[0], origin[1], cell_size);
+
+  // Debugging
+  geometry_msgs::PoseArray grad_poses;
+  gtsam::Vector2 gradient;
+  double potential;
+  double max_score = 0.001*(100.0*5.0*5.0 - 1);
+  grad_poses.header.frame_id = "/map";
+  grad_poses.header.stamp = ros::Time::now();
+  for (int y=1; y<19; y++){
+    for (int x=1; x<19; x++){
+      potential = potential_arr_.getSignedDistance(gtsam::Point2(x,y), gradient);
+
+      if(potential < max_score){
+        geometry_msgs::Pose grad_pose;
+        grad_pose.position.x = x;
+        grad_pose.position.y = y;
+
+        // Create this quaternion from roll/pitch/yaw (in radians)
+        tf2::Quaternion myQuaternion;
+        myQuaternion.setRPY( 0, 0, atan2(-gradient[1], -gradient[0]) );
+        grad_pose.orientation.z = myQuaternion.z();
+        grad_pose.orientation.w = myQuaternion.w();
+
+        grad_poses.poses.push_back(grad_pose);
+
+        printf("x %d, y %d: potential %f \t gradient %f, %f\n",
+            x, y, potential, gradient[0], gradient[1]);
+      }
+    }
+  }
+  pot_grad_pub_.publish(grad_poses);
+
+  nav_cost_time_ = ros::Time::now();
+}
+
 } // piper namespace
 
 
@@ -152,7 +231,7 @@ void mainCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   ros::NodeHandle nh("piper");
   piper::DiffInterface diff(nh);
-  diff.execute();
+  // diff.execute();
   ROS_INFO("Done.");
   ros::shutdown();
 }

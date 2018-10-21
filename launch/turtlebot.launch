@@ -72,6 +72,11 @@
   <node name="steap_visualize" pkg="piper" type="steap_visualize.py" output="screen">
     <!-- <param name="frame_id" value="/map"/> -->
   </node>
+  <!-- Run the costmap node -->
+  <node name="planner" pkg="global_planner" type="planner" >
+    <rosparam file="$(find piper)/config/global_planner.yaml" command="load" ns="planner" />
+    <rosparam file="$(find piper)/config/global_costmap.yaml" command="load" ns="costmap" />
+  </node>
 
   <!--  ****** Maps *****  -->
   <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">

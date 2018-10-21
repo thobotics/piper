@@ -48,6 +48,9 @@ Traj::Traj(ros::NodeHandle nh)
   }
   else
     ROS_WARN("No trajectory control topic. Trajectory will not be executed.");
+
+  // TODO: Check parameters
+  gplan_client_ = nh.serviceClient<GlobalPlanSrv>("/planner/make_plan");
 }
 
 /* ************************************************************************** */
@@ -82,13 +85,28 @@ void Traj::initializeTrajectory(gtsam::Values& init_values, Problem& problem)
     for (size_t i=0; i<problem.total_step; i++)
     {
       double ratio = static_cast<double>(i)/static_cast<double>(problem.total_step-1);
-      pose = gtsam::Pose2((1.0 - ratio)*problem.start_pose.x() + ratio*problem.goal_pose.x(), 
-        (1.0 - ratio)*problem.start_pose.y() + ratio*problem.goal_pose.y(), 
+      // pose = gtsam::Pose2((1.0 - ratio)*problem.start_pose.x() + ratio*problem.goal_pose.x(),
+      //   (1.0 - ratio)*problem.start_pose.y() + ratio*problem.goal_pose.y(),
+      //   (1.0 - ratio)*problem.start_pose.theta() + ratio*problem.goal_pose.theta());
+
+      pose = gtsam::Pose2(gpath_init_[i].x(), gpath_init_[i].y(),
         (1.0 - ratio)*problem.start_pose.theta() + ratio*problem.goal_pose.theta());
+
       conf = (1.0 - ratio)*problem.start_conf + ratio*problem.goal_conf;
+
+      printf("i: %d -- x %f, y %f theta %f \n", i, pose.x(), pose.y(), pose.theta());
       init_values.insert(gtsam::Symbol('x',i), gpmp2::Pose2Vector(pose, conf));
+      // init_values.insert(gtsam::Symbol('x',i), gpmp2::Pose2Vector(gpath_init_[i], conf));
       init_values.insert(gtsam::Symbol('v',i), avg_vel);
+
+      // if (i == 0){
+      //   problem.pstart = gpmp2::Pose2Vector(gtsam::Pose2(problem.pstart.pose().x(),
+      //     problem.pstart.pose().y(), gpath_init_[i].theta()), problem.pstart.configuration());
+      // }else if (i == problem.total_step-1){
+      //   problem.pgoal = gpmp2::Pose2Vector(gpath_init_[i], conf);
+      // }
     }
+
   }
 }
 
@@ -221,4 +239,48 @@ void Traj::publishPlannedTrajectory(gtsam::Values& values, Problem& problem, siz
   plan_traj_pub.publish(plan_traj);
 }
 
+/* ************************************************************************** */
+void Traj::potentialNavigation(Problem& problem)
+{
+
+  geometry_msgs::PoseStamped start, goal;
+  start.header.frame_id = "/map";
+  start.pose.position.x = problem.start_pose.x();
+  start.pose.position.y = problem.start_pose.y();
+
+  goal.header.frame_id = "/map";
+  goal.pose.position.x = problem.goal_pose.x();
+  goal.pose.position.y = problem.goal_pose.y();
+
+  GlobalPlanSrv gplan_srv;
+  gplan_srv.request.start = goal;
+  gplan_srv.request.goal = start;
+  // gplan_srv.request.start = start;
+  // gplan_srv.request.goal = goal;
+
+  if (gplan_client_.call(gplan_srv))
+  {
+    vector<geometry_msgs::PoseStamped> gpath = gplan_srv.response.path;
+    int step = gpath.size() / (problem.total_step - 2);
+
+    gpath_init_.push_back(problem.pstart.pose());
+    for (size_t i = problem.total_step - 2; i > 0; i--)
+    {
+      geometry_msgs::Pose pose = gpath[i*step].pose;
+      tf::Quaternion q(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+      tf::Matrix3x3 m(q);
+      double roll, pitch, yaw;
+      m.getRPY(roll, pitch, yaw);
+
+      gpath_init_.push_back(gtsam::Pose2(pose.position.x, pose.position.y, yaw));
+      // printf("i %i: x %f, y %f theta %f \n", i*step, pose.position.x, pose.position.y, yaw);
+    }
+    gpath_init_.push_back(problem.pgoal.pose());
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service makeplan");
+    // return 1;
+  }
+}
 } // piper namespace

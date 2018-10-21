@@ -39,7 +39,8 @@ class Problem
     gpmp2::TrajOptimizerSetting opt_setting;
     
   private:
-    std::vector<double> sc_, gc_, sp_, gp_;
+    bool vlf_;
+    std::vector<double> sc_, gc_, sp_, gp_, vlc_, vlt_;
     std::string sdf_file_;
     double Qc_, fix_pose_sigma_, fix_vel_sigma_;
     std::string opt_type_;

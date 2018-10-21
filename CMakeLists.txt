@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   trajectory_msgs
   nav_msgs
+  navfn
 )
 
 ## Generate messages in the 'msg' folder

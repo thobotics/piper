@@ -42,6 +42,16 @@ Problem::Problem(ros::NodeHandle nh)
     goal_pose = gtsam::Pose2(gp_[0], gp_[1], gp_[2]);
     pgoal = gpmp2::Pose2Vector(goal_pose, goal_conf);
   }
+  // Velocity limits
+  if (nh.hasParam("vel_limit"))
+  {
+    nh.getParam("vel_limit", vlf_);
+
+    if(vlf_){
+      nh.getParam("vel_limit_conf", vlc_);
+      nh.getParam("vel_limit_thresh", vlt_);
+    }
+  }
 
   // signed distance field
   nh.getParam("sdf_file", sdf_file_);
@@ -73,8 +83,16 @@ Problem::Problem(ros::NodeHandle nh)
   opt_setting.epsilon = epsilon;
   opt_setting.Qc_model = gtsam::noiseModel::Gaussian::Covariance(Qc_*gtsam::Matrix::Identity(DOF, DOF));
   opt_setting.conf_prior_model = gtsam::noiseModel::Isotropic::Sigma(DOF, fix_pose_sigma_);
-  if (robot.isDifferentialDrive())
+  if (robot.isDifferentialDrive()){
     opt_setting.vel_prior_model = gtsam::noiseModel::Isotropic::Sigma(DOF-1, fix_vel_sigma_);
+
+    if(vlf_){
+      opt_setting.flag_vel_limit = true;
+      opt_setting.vel_limit_model = gtsam::noiseModel::Isotropic::Sigma(DOF-1, fix_vel_sigma_);
+      opt_setting.vel_limits = getVector(vlc_);
+      opt_setting.vel_limit_thresh = getVector(vlt_);
+    }
+  }
   else
     opt_setting.vel_prior_model = gtsam::noiseModel::Isotropic::Sigma(DOF, fix_vel_sigma_);
   if (opt_type_ == "LM")

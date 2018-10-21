@@ -56,6 +56,8 @@
 #include <boost/serialization/array.hpp>
 
 #include <diff_drive.h>
+#include <BatchTrajOptimizerNavFn.h>
+#include <ISAM2TrajOptimizerNavFn.h>
 #include <GaussianProcessPriorDiff.h>
 #include <GaussianProcessInterpolatorDiff.h>
 
@@ -74,22 +76,27 @@ namespace piper {
       ObstacleSDFFactorGPDiffPose2MobileArm;
 
   gtsam::Values BatchTrajOptimizePose2MobileDiff(
-    const Pose2MobileArmModel& marm, const SignedDistanceField& sdf,
+    const Pose2MobileArmModel& marm, const SignedDistanceField& sdf, const NavPotential& pot,
     const Pose2Vector& start_conf, const gtsam::Vector& start_vel,
     const Pose2Vector& end_conf, const gtsam::Vector& end_vel,
     const gtsam::Values& init_values, const TrajOptimizerSetting& setting) {
 
-      return gpmp2::internal::BatchTrajOptimize<Pose2MobileArmModel, GaussianProcessPriorDiff,
+      return BatchTrajOptimizeNavFn<Pose2MobileArmModel, GaussianProcessPriorDiff,
           SignedDistanceField, ObstacleSDFFactorPose2MobileArm, ObstacleSDFFactorGPDiffPose2MobileArm,
           JointLimitFactorPose2Vector, VelocityLimitFactorVector>(
-          marm, sdf, start_conf, start_vel, end_conf, end_vel, init_values, setting);
+          marm, sdf, pot, start_conf, start_vel, end_conf, end_vel, init_values, setting);
   };
 
-  /// 3D mobile arm specialization
-  typedef gpmp2::internal::ISAM2TrajOptimizer<Pose2MobileArmModel, GaussianProcessPriorDiff,
+  typedef ISAM2TrajOptimizerNavFn<Pose2MobileArmModel, GaussianProcessPriorDiff,
       SignedDistanceField, ObstacleSDFFactorPose2MobileArm, ObstacleSDFFactorGPDiffPose2MobileArm,
       JointLimitFactorPose2Vector, VelocityLimitFactorVector>
   ISAM2TrajOptimizerPose2MobileDiff;
+
+  // /// 3D mobile arm specialization
+  // typedef gpmp2::internal::ISAM2TrajOptimizer<Pose2MobileArmModel, GaussianProcessPriorDiff,
+  //     SignedDistanceField, ObstacleSDFFactorPose2MobileArm, ObstacleSDFFactorGPDiffPose2MobileArm,
+  //     JointLimitFactorPose2Vector, VelocityLimitFactorVector>
+  // ISAM2TrajOptimizerPose2MobileDiff;
 
 }
 

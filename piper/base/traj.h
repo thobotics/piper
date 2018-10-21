@@ -15,6 +15,9 @@
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <actionlib/client/simple_action_client.h>
 #include <trajectory_msgs/JointTrajectory.h>
+#include <navfn/MakeNavPlan.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <tf/transform_datatypes.h>
 
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/inference/Symbol.h>
@@ -25,6 +28,7 @@
 #include <problem.h>
 #include <misc.h>
 
+using namespace std;
 
 namespace piper {
 
@@ -32,6 +36,7 @@ class Traj
 {
   public:
     typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> TrajClient;
+    typedef navfn::MakeNavPlan GlobalPlanSrv;
     ros::Publisher est_traj_pub, plan_traj_pub;
     std::vector<std::string> arm_joint_names;
 
@@ -39,6 +44,8 @@ class Traj
     std::string trajectory_control_topic_, est_traj_pub_topic_, plan_traj_pub_topic_;
     TrajClient* traj_client_;
     control_msgs::FollowJointTrajectoryGoal traj_;
+    ros::ServiceClient gplan_client_;
+    vector<gtsam::Pose2> gpath_init_;
 
   public:
     /// Default constructor
@@ -88,6 +95,9 @@ class Traj
      *  @param step planned traj is from step to total_step
      **/
     void publishPlannedTrajectory(gtsam::Values& values, Problem& problem, size_t step);
+
+    // New function for navigation
+    void potentialNavigation(Problem& problem);
 };
 
 } // piper namespace

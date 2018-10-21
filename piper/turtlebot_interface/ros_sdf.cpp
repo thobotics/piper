@@ -25,12 +25,12 @@ void field_grid_cb(const piper::FieldGridConstPtr &grid){
   // piper::RosSDF sdf;
 
   // Parse data
-  gtsam::Matrix data2d(grid->info.width, grid->info.height);
+  gtsam::Matrix data2d(grid->info.height, grid->info.width);
 
-  gtsam::Vector row = gtsam::Vector::Zero(grid->info.height);
-  for(int i=0; i<grid->info.width; i++){
-    for(int j=0; j<grid->info.height; j++){
-      row[j] = grid->data[i*grid->info.width+j];
+  gtsam::Vector row = gtsam::Vector::Zero(grid->info.width);
+  for(int i=0; i<grid->info.height; i++){
+    for(int j=0; j<grid->info.width; j++){
+      row[j] = grid->data[i*grid->info.height+j];
     }
     data2d.row(i) = row;
   }
