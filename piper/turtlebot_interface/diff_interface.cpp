@@ -193,8 +193,8 @@ void DiffInterface::navCostCallback(const nav_msgs::OccupancyGrid::ConstPtr& gri
   double max_score = score_scale*(100.0*scale_res*scale_res - 1);
   grad_poses.header.frame_id = "/map";
   grad_poses.header.stamp = ros::Time::now();
-  for (int y=1; y<19; y++){
-    for (int x=1; x<19; x++){
+  for (int y=1; y<(int)grid->info.height*cell_size-1; y++){
+    for (int x=1; x<(int)grid->info.width*cell_size-1; x++){
       potential = potential_arr_.getSignedDistance(gtsam::Point2(x,y), gradient);
 
       if(potential < max_score){
