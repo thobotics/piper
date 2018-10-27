@@ -85,7 +85,7 @@ namespace piper{
 
         // Jacobians
         if (H1){
-            gtsam::Matrix high = (Matrix(dof_, dof_) << Matrix::Identity(3, 3) + Hdiff1_1,
+            gtsam::Matrix high = (Matrix(dof_, dof_) << Matrix::Identity(3, 3) + delta_t_ * Hdiff1_1,
                 Matrix::Zero(3, dof_-3), Matrix::Zero(dof_-3, 3),
                 Matrix::Identity(dof_-3, dof_-3)).finished();
             gtsam::Matrix low = (Matrix(dof_, dof_) << Hdiff1_1, Matrix::Zero(3, dof_-3),

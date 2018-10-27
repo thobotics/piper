@@ -3,7 +3,10 @@
   <arg name="robot" default="vector_diff" />
   <arg name="problem" default="example_vector" />
 
-  <node name="diff_interface" pkg="piper" type="diff_interface" output="screen" launch-prefix="xterm -e gdb --args" />
+  <?ignore
+    <node name="diff_interface" pkg="piper" type="diff_interface" output="screen" launch-prefix="xterm -e gdb --args" />
+  ?>
+  <node name="diff_interface" pkg="piper" type="diff_interface" output="screen" />
 
   <rosparam command="load" file="$(find piper)/config/$(arg robot).yaml" />
   <rosparam command="load" file="$(find piper)/problem/$(arg problem).yaml" />

@@ -27,7 +27,7 @@ namespace piper {
            Vector2(0,        1)
          ).finished().transpose();
 
-      return gtsam::Vector3(v*cos(phi), v*sin(phi), w);
+      return gtsam::Vector3(v*cos_phi, v*sin_phi, w);
   }
 
 };
