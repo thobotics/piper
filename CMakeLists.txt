@@ -163,13 +163,11 @@ if(BUILD_TURTLEBOT_INTERFACE)
   # add_executable(turtlebot_interface ${TURTLEBOT_INTERFACE_SRC})
   add_executable(turtlebot_interface piper/turtlebot_interface/turtlebot_interface.cpp)
   add_executable(diff_interface piper/turtlebot_interface/diff_interface.cpp)
-  add_executable(ros_sdf piper/turtlebot_interface/ros_sdf.cpp)
 
   target_link_libraries(turtlebot_interface piperbase)
   target_link_libraries(diff_interface piperbase pipermobilerobot)
-  target_link_libraries(ros_sdf piperbase)
 
-  install(TARGETS turtlebot_interface diff_interface ros_sdf
+  install(TARGETS turtlebot_interface diff_interface
     RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
 
@@ -179,6 +177,24 @@ if(BUILD_TURTLEBOT_INTERFACE)
   )
 endif()
 
+####################################################
+##                 ros_application                ##
+####################################################
+include_directories(piper/ros_application/)
+add_executable(ros_sdf piper/ros_application/ros_sdf.cpp)
+add_executable(turtlebot_server piper/ros_application/turtlebot_server.cpp)
+
+target_link_libraries(ros_sdf piperbase)
+target_link_libraries(turtlebot_server ${catkin_LIBRARIES})
+
+install(TARGETS ros_sdf turtlebot_server
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY piper/ros_application/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
+)
 
 ################################################
 ##                   launch                   ##

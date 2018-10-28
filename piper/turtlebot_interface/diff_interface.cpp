@@ -229,7 +229,7 @@ void mainCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   ros::NodeHandle nh("piper");
   piper::DiffInterface diff(nh);
-  // diff.execute();
+  diff.execute();
   ROS_INFO("Done.");
   ros::shutdown();
 }

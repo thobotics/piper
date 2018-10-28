@@ -66,7 +66,10 @@
   <!--  ************** Navigation  ***************  -->
   <!--  ****** Move_base ******  -->
   <!-- <include file="$(find turtlebot_mpepc)/launch/includes/move_base.launch.xml"/> -->
-  <node name="trajfeedback" pkg="piper" type="turtlebot_traj_server.py" output="screen">
+  <!-- <node name="trajfeedback" pkg="piper" type="turtlebot_traj_server.py" output="screen">
+    <param name="diff_drive" value="$(arg diff_drive)" />
+  </node> -->
+  <node name="turtlebot_server" pkg="piper" type="turtlebot_server" output="screen">
     <param name="diff_drive" value="$(arg diff_drive)" />
   </node>
   <node name="steap_visualize" pkg="piper" type="steap_visualize.py" output="screen">
