@@ -180,12 +180,16 @@ endif()
 ####################################################
 ##                 ros_application                ##
 ####################################################
+include_directories(piper/ros_application/library/)
+file(GLOB ROS_LIB_SRC "piper/ros_application/library/*.cpp")
+add_library(rosapplib ${ROS_LIB_SRC})
+
 include_directories(piper/ros_application/)
 add_executable(ros_sdf piper/ros_application/ros_sdf.cpp)
 add_executable(turtlebot_server piper/ros_application/turtlebot_server.cpp)
 
 target_link_libraries(ros_sdf piperbase)
-target_link_libraries(turtlebot_server ${catkin_LIBRARIES})
+target_link_libraries(turtlebot_server rosapplib ${catkin_LIBRARIES})
 
 install(TARGETS ros_sdf turtlebot_server
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
