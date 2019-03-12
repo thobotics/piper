@@ -3,6 +3,7 @@ Extended STEAP
 
 The new extended version of STEAP (Simultaneous Trajectory Estimation and Planning) is a navigation framework that supports  different types of mobile robot (Omni and Differential Drive). This repository heavily relies on GTSAM and GPMP2, thus, we refer users to carefully read the information below for installation as well as configuration these packages. 
 
+- Hoang, T. Estimation and Planning Differential Drive Robot Simultaneously - Technical Report. Preprints 2019, 2019020084 (doi: 10.20944/preprints201902.0084.v1).
 - [DEMO](https://youtu.be/0G3FmNgEhMs) 
 
 PIPER
